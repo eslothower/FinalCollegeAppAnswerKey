@@ -6,6 +6,7 @@ import java.util.ArrayList;
  * Created by jlinburg on 3/9/17.
  */
 public class Family {
+    private String testString = "";
     private final String TAG = "FAMILY";
     private ArrayList<FamilyMember> family;
     private static Family sFamily = new Family();
