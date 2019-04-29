@@ -1,4 +1,4 @@
-package org.pltw.examples.collegeappanswerkey;
+package com.example.eslothower.collegeapp_eslothower;
 
 import android.app.Activity;
 import android.content.Context;
@@ -8,8 +8,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
-import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
@@ -23,135 +23,55 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.backendless.Backendless;
-import com.backendless.BackendlessCollection;
 import com.backendless.async.callback.AsyncCallback;
-import com.backendless.async.callback.BackendlessCallback;
 import com.backendless.exceptions.BackendlessFault;
-import com.backendless.persistence.BackendlessDataQuery;
+import com.backendless.persistence.DataQueryBuilder;
+
 
 import java.io.File;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.GregorianCalendar;
+import java.util.List;
 
-/**
- * Created by simmonsj05 on 1/15/17.
- */
-public class ProfileFragment extends Fragment{
+import static android.content.ContentValues.TAG;
 
-    public static final int REQUEST_DATE_OF_BIRTH = 0;
+public class ProfileFragment extends Fragment {
 
-    private TextView mFirstNameTextView, mLastNameTextView;
-    private EditText mFirstNameEditText, mLastNameEditText;
-    private Button mSubmitButton, mBirthdayButton;
-    private SimpleDateFormat formatter;
-    private Profile mProfile;
-    private final String TAG = "PROFILE_FRAGMENT";
-    private ImageButton mSelfieButton;
-    private ImageView mSelfieView;
-    private File mSelfieFile;
+
+    Profile mProfile;
+    public String email;
+
+    public Button datePickerButton;
+
+    public ImageButton mSelfieButton;
+    public ImageView mSelfieView;
+    public File mSelfieFile;
     private final int REQUEST_SELFIE = 1;
+    public static final int REQUEST_DATE_OF_BIRTH = 0;
+    private SimpleDateFormat formatter;
 
-    @Nullable
+
+
+
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_profile, container, false);
-        mProfile = new Profile();
-        SharedPreferences sharedPreferences =
-                getActivity().getPreferences(Context.MODE_PRIVATE);
-        String email = sharedPreferences.getString(ApplicantActivity.EMAIL_PREF, null);
-        if (mProfile.getEmail() == null) {
-            mProfile.setEmail(email);
-        }
-            String whereClause = "email = '" + email + "'";
-            BackendlessDataQuery query = new BackendlessDataQuery();
-            query.setWhereClause(whereClause);
-            Backendless.Persistence.of(Profile.class).find(query, new
-                    AsyncCallback<BackendlessCollection<Profile>>() {
-                        @Override
-                        public void handleResponse(BackendlessCollection<Profile> response) {
-                            if (!response.getData().isEmpty()) {
-                                mProfile = response.getData().get(0);
-                                mFirstNameTextView.setText(response.getData().get(0).getFirstName());
-                                mLastNameTextView.setText(response.getData().get(0).getLastName());
-                                Date birthday = response.getData().get(0).getBirthday();
-                                try {
-                                    Date formattedBirthday = new SimpleDateFormat("yyyy-MM-dd").parse(birthday.toString());
-                                    mBirthdayButton.setText(formattedBirthday.toString());
-                                } catch (ParseException e) {
-                                    e.printStackTrace();
-                                }
-                                Log.i(TAG, "Got profile: " + response.getData().get(0).objectId);
-                            }
-                        }
 
-                        @Override
-                        public void handleFault(BackendlessFault fault) {
-                            Log.e(TAG, "Failed to find profile: " + fault.getMessage());
 
-                        }
-                    });
-        formatter = new SimpleDateFormat("MM/dd/yyyy");
+    public View onCreateView(LayoutInflater inflater, ViewGroup view, Bundle bundle){
+        super.onCreateView(inflater, view, bundle);
 
-        mFirstNameTextView = (TextView) rootView.findViewById(R.id.profile_first_name);
-        mLastNameTextView = (TextView) rootView.findViewById(R.id.profile_last_name);
-        mFirstNameEditText = (EditText) rootView.findViewById(R.id.profile_first_name_edit);
-        mLastNameEditText = (EditText) rootView.findViewById(R.id.profile_last_name_edit);
-        mBirthdayButton = (Button) rootView.findViewById(R.id.birthday_picker_button);
-        mSubmitButton = (Button) rootView.findViewById(R.id.profile_submit_button);
-        mSelfieButton = (ImageButton) rootView.findViewById(R.id.profile_camera);
-        mSelfieView = (ImageView) rootView.findViewById(R.id.profile_pic);
+        View rootView = inflater.inflate(R.layout.fragment_profile, view, false);
+
+
+
+        final TextView pFirstName = (TextView)rootView.findViewById(R.id.pFirstName);
+        final TextView pLastName = (TextView)rootView.findViewById(R.id.pLastName);
+        final EditText pfEditText = (EditText)rootView.findViewById(R.id.pPlainText1);
+        final EditText plEditText = (EditText)rootView.findViewById(R.id.pPlainText2);
+        Button pSubmitButton = (Button)rootView.findViewById(R.id.pSubmitButton);
+        datePickerButton = (Button)rootView.findViewById(R.id.datePickerButton);
+        ImageButton mSelfieButton =  (ImageButton)rootView.findViewById(R.id.profile_camera);
+        ImageView mSelfieView = (ImageView)rootView.findViewById(R.id.profile_pic);
         mSelfieFile = mProfile.getPhotoFile(getActivity());
-
-        if (mProfile.getFirstName() != null) {
-            mFirstNameTextView.setText(mProfile.getFirstName());
-            mLastNameTextView.setText(mProfile.getLastName());
-            mBirthdayButton.setText(formatter.format(mProfile.getBirthday()));
-        }
-        else{
-            mFirstNameTextView.setText("Enter First Name:");
-            mLastNameTextView.setText("Enter Last Name:");
-        }
-
-        mBirthdayButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                FragmentManager fm = getActivity().getSupportFragmentManager();
-                DatePickerFragment dialog;
-                dialog = DatePickerFragment.newInstance(mProfile.getBirthday());
-                dialog.setTargetFragment(ProfileFragment.this, REQUEST_DATE_OF_BIRTH);
-                dialog.show(fm, "DialogDateOfBirth");
-            }
-        });
-
-        mSubmitButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mFirstNameEditText.getText().length() > 0){
-                    String firstName = mFirstNameEditText.getText().toString();
-                    mProfile.setFirstName(firstName);
-                    mFirstNameTextView.setText(firstName);
-                    mFirstNameEditText.setText("");
-                }
-
-                if(mLastNameEditText.getText().length() > 0){
-                    String lastName = mLastNameEditText.getText().toString();
-                    mProfile.setLastName(lastName);
-                    mLastNameTextView.setText(lastName);
-                    mLastNameEditText.setText("");
-                }
-                if (mProfile.getFirstName() != null && mProfile.getLastName()!= null){
-                    Backendless.Persistence.save(mProfile, new BackendlessCallback<Profile>() {
-                        @Override
-                        public void handleResponse(Profile response) {
-                            Log.i("Backendless", "Saved profile to Backendless " + response.objectId);
-                        }
-                    });
-                }
-                
-            }
-        });
 
         final Intent captureSelfie = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         boolean canTakeSelfie = mSelfieFile != null &&
@@ -168,20 +88,175 @@ public class ProfileFragment extends Fragment{
             }
         });
 
+        mProfile = new Profile();
+
+        pFirstName.setText(mProfile.getFirstName());
+        pLastName.setText(mProfile.getLastName());
+
+        pSubmitButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (pfEditText.getText().toString()!=null){
+                    mProfile.mFirstName = pfEditText.getText().toString();
+                    pFirstName.setText(pfEditText.getText());
+                }
+                if (plEditText.getText().toString()!=null){
+                    mProfile.mLastName = plEditText.getText().toString();
+                    pLastName.setText(plEditText.getText());
+                }
+                saveToBackendless();
+            }
+        });
+
+
+        datePickerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FragmentManager fm = getFragmentManager();
+                DatePickerFragment dialog = DatePickerFragment.newInstance(mProfile.dateOfBirth);
+                dialog.show(fm, "DialogDateOfBirth");
+                Log.i("ProfileFragment", mProfile.dateOfBirth.toString());
+            }
+        });
         updateSelfieView();
         return rootView;
-    }
-
-    @Override
-    public void onStart(){
-        super.onStart();
 
     }
 
     @Override
     public void onPause(){
         super.onPause();
+/*
+        if (email == null){
+            SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+            String email = sharedPreferences.getString(ApplicantActivity.EMAIL_PREF, null);
+            if (mProfile.getEmail() == null) {
+                mProfile.setEmail(email);
+            }
         }
+
+        String whereClause = "email = '" + email + "'";
+        DataQueryBuilder query = DataQueryBuilder.create();
+        query.setWhereClause(whereClause);
+        Backendless.Data.of(Profile.class).find(query, new AsyncCallback<List<Profile>>() {
+            @Override
+            public void handleResponse(List<Profile> profile) {
+                if (!profile.isEmpty()) {
+                    String profileId = profile.get(0).getObjectID();
+                    Log.d(TAG, "Object ID: " + profileId);
+                    mProfile.setObjectID(profileId);
+                }
+            }
+
+            @Override
+            public void handleFault(BackendlessFault fault) {
+                Log.e(TAG, "Failed to find profile: " + fault.getMessage());
+            }
+        });
+        Backendless.Data.of(Profile.class).save(mProfile, new AsyncCallback<Profile>() {
+            @Override
+            public void handleResponse(Profile response) {
+                Log.i(TAG, "Saved profile to Backendless");
+            }
+
+            public void handleFault(BackendlessFault fault) {
+                Log.i(TAG, "Failed to save profile!" + fault.getMessage());
+            }
+        });*/
+    }
+
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (email == null) {
+            SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+            String email = sharedPreferences.getString(ApplicantActivity.EMAIL_PREF, null);
+            if (mProfile.getEmail() == null) {
+                mProfile.setEmail(email);
+            }
+        }
+
+        String whereClause = "email = '" + email + "'";
+        DataQueryBuilder query = DataQueryBuilder.create();
+        query.setWhereClause(whereClause);
+        Backendless.Data.of(Profile.class).find(query, new AsyncCallback<List<Profile>>() {
+            @Override
+            public void handleResponse(List<Profile> profile) {
+                if (!profile.isEmpty()) {
+                    //String profileId = profile.get(0).getObjectID();
+                    //Log.d(TAG, "Object ID: " + profileId);
+                    //mProfile.setObjectID(profileId);
+                    mProfile = profile.get(0);
+                    mProfile.setFirstName(email);
+                }
+            }
+
+            @Override
+            public void handleFault(BackendlessFault fault) {
+                Log.e(TAG, "Failed to find profile: " + fault.getMessage());
+            }
+        });
+        Backendless.Data.of(Profile.class).save(mProfile, new AsyncCallback<Profile>() {
+            @Override
+            public void handleResponse(Profile response) {
+                Log.i(TAG, "Saved profile to Backendless");
+            }
+
+            public void handleFault(BackendlessFault fault) {
+                Log.i(TAG, "Failed to save profile!" + fault.getMessage());
+            }
+        });
+    }
+
+
+    public void saveToBackendless(){
+        String whereClause = "email = 'jlinburg@doversd.org'";
+        DataQueryBuilder query = DataQueryBuilder.create();
+        query.setWhereClause(whereClause);
+        Backendless.Data.of(Profile.class).find(query, new AsyncCallback<List<Profile>>() {
+            @Override
+            public void handleResponse(List<Profile> response) {
+                if (!response.isEmpty()) {
+                    String profileId = response.get(0).getObjectID();
+                    Log.d("Profile Fragment", "Object ID: " + profileId);
+                    mProfile.setObjectID(profileId);
+                    Backendless.Data.of(Profile.class).save(mProfile, new AsyncCallback<Profile>() {
+                        @Override
+                        public void handleResponse(Profile response) {
+                            Log.i("success", response.getFirstName() + " has been saved");
+                        }
+
+                        @Override
+                        public void handleFault(BackendlessFault fault) {
+                            Log.e("Error", fault.getMessage());
+                        }
+                    });
+                }
+                else{
+                    Backendless.Data.of(Profile.class).save(mProfile, new AsyncCallback<Profile>() {
+                        @Override
+                        public void handleResponse(Profile response) {
+                            Log.i("success", response.getFirstName() + " has been saved");
+                            mProfile.objectID = response.objectID;
+                        }
+
+                        @Override
+                        public void handleFault(BackendlessFault fault) {
+                            Log.e("Error", fault.getMessage());
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void handleFault(BackendlessFault fault) {
+                Log.e("Profile Fragment", "Failed to find profile: " + fault.getMessage());
+            }
+        });
+
+
+    }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -191,8 +266,8 @@ public class ProfileFragment extends Fragment{
 
         if(requestCode == REQUEST_DATE_OF_BIRTH){
             Date date = (Date)(data.getSerializableExtra(DatePickerFragment.EXTRA_DATE_OF_BIRTH));
-            mProfile.setBirthday(date);
-            mBirthdayButton.setText(formatter.format(mProfile.getBirthday()));
+            mProfile.setDateOfBirth(date);
+            datePickerButton.setText(formatter.format(mProfile.getDateOfBirth()));
         }
         if(requestCode == REQUEST_SELFIE){
             updateSelfieView();
@@ -205,4 +280,10 @@ public class ProfileFragment extends Fragment{
             mSelfieView.setImageBitmap(bitmap);
         }
     }
+
+
+
+
+
+
 }
